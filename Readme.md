@@ -1,0 +1,1 @@
+Aqui se guardaran todos los escitps que se generen pa las siguiente liberaciones, cuando ya se alla liberado se eliminaran los scripts
