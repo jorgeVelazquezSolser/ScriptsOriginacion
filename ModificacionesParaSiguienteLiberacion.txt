@@ -1,0 +1,17 @@
+////////////////////////////STORED ////////////////////////
+
+*****Originacion***
+Originacion\SP\proc_Orgn_CheckList_Busca_Cerrado_x_Persona.sql
+Originacion\SP\proc_Orgn_CheckList_Replica_Recotizacion.sql
+Originacion\SP\proc_Orgn_Dir_Electronica_Observacion_Update.sql
+Originacion\SP\Proc_orgn_DR_Domicilios_Extrae_x_Id_Persona.sql
+Originacion\SP\Proc_orgn_DR_Domicilios_Extrae_x_Id.sql
+Originacion\SP\proc_Orgn_Solicitud_Domicilio_Add_Update.sql
+Originacion\SP\proc_Orgn_Solicitudes_Lista_Extrae.sql
+Originacion\SP\proc_Orgn_Solicitudes_Lista_Extrae_Nuevo.sql
+
+////////////////////////////TABLES ////////////////////////
+
+*****Originacion***
+Originacion\tabla\DR_Domicilios_Bitacora.sql
+Originacion\tabla\DR_Domicilios.sql
