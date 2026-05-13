@@ -9,9 +9,16 @@ Originacion\SP\Proc_orgn_DR_Domicilios_Extrae_x_Id.sql
 Originacion\SP\proc_Orgn_Solicitud_Domicilio_Add_Update.sql
 Originacion\SP\proc_Orgn_Solicitudes_Lista_Extrae.sql
 Originacion\SP\proc_Orgn_Solicitudes_Lista_Extrae_Nuevo.sql
+Originacion/SP/Proc_Orgn_CR_Tipo_Rechazo_Extrae.sql
+Originacion/SP/Proc_Orgn_TR_Motivos_Cancelacion_Rechazo_Extrae.sql
+Originacion/SP/proc_Orgn_Solicitud_Cancela_Rechaza.sql
+
 
 ////////////////////////////TABLES ////////////////////////
 
 *****Originacion***
 Originacion\tabla\DR_Domicilios_Bitacora.sql
 Originacion\tabla\DR_Domicilios.sql
+Originacion/tabla/CR_Cancelacion_Rechazo.sql
+Originacion/tabla/TR_CR_Tipo_Rechazo.sql
+Originacion/tabla/TR_Motivos_Cancelacion_Rechazo.sql
