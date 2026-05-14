@@ -1,7 +1,7 @@
 -- ============================================================
--- SCRIPT: 02_SP_NEW_proc_Orgn_CheckList_Replica_Recotizacion
--- Versión: v1_CallCenter_Recotizacion
--- Fecha: 2026-05-11
+-- SCRIPT: proc_Orgn_CheckList_Replica_Recotizacion
+-- Versión: v3_CallCenter_Recotizacion
+-- Fecha: 2026-05-14
 -- Autor: JorgeVelazquez
 -- Descripción: SP NUEVO. Cuando se recotiza y se genera una nueva solicitud,
 --              replica los registros de validación de Call Center de la
@@ -10,9 +10,14 @@
 --              1. Actualiza CR_Credito_Checklist del nuevo crédito con los
 --                 resultados de verificación del crédito anterior.
 --              2. Inserta/actualiza CR_Credito_CheckList_Resumen del nuevo
---                 crédito con el resumen del crédito anterior.
+--                 crédito: copia usuario y notas del anterior pero deja
+--                 Resultado=NULL y Fecha_Fin=NULL para que CC reconfirme
+--                 el cambio sin tener que llamar al cliente desde cero.
+--                 Guarda ID_Credito_Origen = @ID_Credito_Anterior para que
+--                 el SP de lista muestre el resultado anterior vía COALESCE
+--                 mientras Resultado siga en NULL.
 -- Tablas afectadas:
---   CR_Credito_Checklist      (UPDATE)
+--   CR_Credito_Checklist         (UPDATE)
 --   CR_Credito_CheckList_Resumen (INSERT / UPDATE)
 -- ============================================================
 
@@ -74,6 +79,9 @@ BEGIN
         -- 2. Replicar el resumen de Call Center
         --    Si ya existe registro para el nuevo crédito → UPDATE
         --    Si no existe → INSERT
+        --    En ambos casos se guarda ID_Credito_Origen para que
+        --    el SP de lista muestre el resultado anterior mientras
+        --    CC no confirme el nuevo crédito (Resultado IS NULL).
         -- --------------------------------------------------------
         IF EXISTS (
             SELECT 1
@@ -85,10 +93,11 @@ BEGIN
             SET
                 dest.Id_Usuario_Asignado = src.Id_Usuario_Asignado,
                 dest.Fecha_Inicio        = src.Fecha_Inicio,
-                dest.Fecha_Fin           = src.Fecha_Fin,
-                dest.Resultado           = src.Resultado,
+                dest.Fecha_Fin           = NULL,
+                dest.Resultado           = NULL,
                 dest.Fecha_Asignacion    = src.Fecha_Asignacion,
-                dest.Notas               = src.Notas
+                dest.Notas               = src.Notas,
+                dest.ID_Credito_Origen   = @ID_Credito_Anterior
             FROM CR_Credito_CheckList_Resumen dest
             INNER JOIN CR_Credito_CheckList_Resumen src
                 ON src.Id_Credito = @ID_Credito_Anterior
@@ -99,15 +108,16 @@ BEGIN
         BEGIN
             INSERT INTO CR_Credito_CheckList_Resumen
                 (Id_Credito, Id_Usuario_Asignado, Fecha_Inicio, Fecha_Fin,
-                 Resultado, Fecha_Asignacion, Notas)
+                 Resultado, Fecha_Asignacion, Notas, ID_Credito_Origen)
             SELECT
                 @ID_Credito_Nuevo,
                 Id_Usuario_Asignado,
                 Fecha_Inicio,
-                Fecha_Fin,
-                Resultado,
+                NULL,
+                NULL,
                 Fecha_Asignacion,
-                Notas
+                Notas,
+                @ID_Credito_Anterior
             FROM CR_Credito_CheckList_Resumen
             WHERE Id_Credito = @ID_Credito_Anterior
               AND Resultado  = 'S';

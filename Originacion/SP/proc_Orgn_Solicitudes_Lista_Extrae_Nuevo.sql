@@ -1,7 +1,9 @@
 --///////////////////////////////////////////////////////////////
--- Versión: v1_CallCenter_Recotizacion  |  Fecha: 2026-05-11  |  Autor: JorgeVelazquez
--- Agrega CheckListCerrado (BIT) al @SQL_Campos_Select.
--- El SP ya tenia JOINs con chkres/usuarioCC y los demás campos check*.
+-- Versión: v2_CallCenter_Recotizacion  |  Fecha: 2026-05-14  |  Autor: JorgeVelazquez
+-- Agrega COALESCE(chkres.Resultado, chkres_org.Resultado) en checkResultado
+-- y columna CheckFueReplicado (BIT) en @SQL_Campos_Select.
+-- Agrega LEFT JOIN chkres_org a CR_Credito_CheckList_Resumen via ID_Credito_Origen
+-- en @SQL_From para mostrar resultado del CC anterior mientras Resultado IS NULL.
 --///////////////////////////////////////////////////////////////
 
 USE [Originacion]
@@ -110,13 +112,14 @@ N' ,permisoasignar.IdObjeto '  + char(13) +
 N' ,chkres.[Id_Usuario_Asignado] checkIdUsuario '  + char(13)  +
 N' ,chkres.[Fecha_Inicio] checkfechaInicio  '  + char(13) +
 N' ,chkres.[Fecha_Fin] checkfechafin '  + char(13) +
-N' ,chkres.[Resultado] checkResultado '  + char(13) +
+N' ,COALESCE(chkres.[Resultado], chkres_org.[Resultado]) checkResultado '  + char(13) +
 N' ,chkres.[Fecha_Asignacion] checkFechaAsigna  '  + char(13) +
 N' ,chkres.Notas checkNotas '  + char(13) +
 N' ,usuarioCC.Nombre checkUsuario '  + char(13) +
 N' ,isnull(credito.Id_Campana,0) Id_Campana '  + char(13) +
 N' ,isnull(campania.Nombre,'''') Nombre_Campana '  + char(13) +
-N' ,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado ' + char(13)
+N' ,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado ' + char(13) +
+N' ,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado ' + char(13)
 
 print 'Longitud @SQL_Campos_Select'
 print len(@SQL_Campos_Select)
@@ -176,6 +179,8 @@ permisoasignar.IdPerfil = usuarioperfile.IdPerfil and
 permisoasignar.idobjeto = 3025
 left join [dbo].[CR_Credito_CheckList_Resumen] chkres on
 chkres.id_credito = Credito.ID_Credito
+left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org on
+chkres_org.Id_Credito = chkres.ID_Credito_Origen
 left join websec.[dbo].SegUsuarios usuarioCC on
 usuarioCC.IdUsuario = chkres.[Id_Usuario_Asignado]
 Left join TR_Unidad_Medida UM on Credito.Cod_Frecuencia_Pago = UM.COD_UDM
@@ -430,8 +435,11 @@ FROM @filtrosXML.nodes('/asignada') as filtros(asignada)
 if ltrim(rtrim(@filtro)) <> ''
 set @SQL_Where = @SQL_Where + N' And usrAnalista.Nombre is not null'   + char(13)
 
--- Requerimiento CallCenter: perfil 17/18 ahora puede ver solicitudes con cualquier resultado CC
--- El Ã­cono CC en la bandeja muestra el estado; no se filtra por resultado para evitar ocultar crÃ©ditos ya validados
+if @IdPerfil = 17 or @IdPerfil = 18
+begin
+set @SQL_Where = @SQL_Where + N' And (chkres.Resultado <> ''S'' or chkres.Resultado is null) '   + char(13)
+set @SQL_Where = @SQL_Where + N' And (chkres.Resultado <> ''N'' or chkres.Resultado is null) '   + char(13)
+end
 
 set @filtro = ''
 

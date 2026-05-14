@@ -1,7 +1,10 @@
 ---////////////////////////////////////////////////////////////////////
--- Versión: v1_CallCenter_Recotizacion  |  Fecha: 2026-05-11  |  Autor: JorgeVelazquez
--- Agrega LEFT JOIN con CR_Credito_CheckList_Resumen (alias chkres) y usr_usuarios (alias usuarioCC)
--- y las columnas check* + CheckListCerrado en los 5 branches del SP.
+-- Versión: v2_CallCenter_Recotizacion  |  Fecha: 2026-05-14  |  Autor: JorgeVelazquez
+-- Agrega COALESCE(chkres.Resultado, chkres_org.Resultado) para mostrar el
+-- resultado del CC anterior mientras el nuevo crédito no haya sido confirmado.
+-- Agrega LEFT JOIN chkres_org a CR_Credito_CheckList_Resumen via ID_Credito_Origen.
+-- Agrega columna CheckFueReplicado (BIT) para que el front distinga
+-- "CC validado propio" de "CC replicado de solicitud anterior, pendiente confirmación".
 ---////////////////////////////////////////////////////////////////////
 
 USE [Originacion]
@@ -109,11 +112,12 @@ Begin
 		,chkres.Id_Usuario_Asignado  AS checkIdUsuario
 		,chkres.Fecha_Inicio         AS checkfechaInicio
 		,chkres.Fecha_Fin            AS checkfechafin
-		,chkres.Resultado            AS checkResultado
+		,COALESCE(chkres.Resultado, chkres_org.Resultado) AS checkResultado
 		,chkres.Fecha_Asignacion     AS checkFechaAsigna
 		,chkres.Notas                AS checkNotas
 		,ISNULL(usuarioCC.Nombre,'') AS checkUsuario
 		,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado
+		,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado
 		FROM CR_Credito as Credito
 			left join [dbo].[TR_Cr_Etapas] as Etapas on Credito.Cod_Etapa = Etapas.Cod_Etapa
 			inner join Pers_Persona Persona on Persona.Id_Persona = Credito.ID_Persona
@@ -136,6 +140,7 @@ Begin
 			Credito.Cod_Etapa = asignable.Cod_Etapa and
 			Credito.Cod_Estatus = asignable.Cod_Estatus
 			left join [dbo].[CR_Credito_CheckList_Resumen] chkres ON chkres.id_credito = Credito.ID_Credito
+			left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org ON chkres_org.Id_Credito = chkres.ID_Credito_Origen
 			left join usr_usuarios usuarioCC ON usuarioCC.ID_Usuario = chkres.Id_Usuario_Asignado
 		 where credito.Id_Credito >= (select [ValorEntero]
 									from  [dbo].[Tr_Parametros_Generales]
@@ -207,11 +212,12 @@ Begin
 		,chkres.Id_Usuario_Asignado  AS checkIdUsuario
 		,chkres.Fecha_Inicio         AS checkfechaInicio
 		,chkres.Fecha_Fin            AS checkfechafin
-		,chkres.Resultado            AS checkResultado
+		,COALESCE(chkres.Resultado, chkres_org.Resultado) AS checkResultado
 		,chkres.Fecha_Asignacion     AS checkFechaAsigna
 		,chkres.Notas                AS checkNotas
 		,ISNULL(usuarioCC.Nombre,'') AS checkUsuario
 		,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado
+		,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado
 		FROM CR_Credito as Credito
 			left join [dbo].[TR_Cr_Etapas] as Etapas on Credito.Cod_Etapa = Etapas.Cod_Etapa
 			inner join Pers_Persona Persona on Persona.Id_Persona = Credito.ID_Persona
@@ -228,6 +234,7 @@ Begin
 			Credito.Cod_Etapa = asignable.Cod_Etapa and
 			Credito.Cod_Estatus = asignable.Cod_Estatus
 			left join [dbo].[CR_Credito_CheckList_Resumen] chkres ON chkres.id_credito = Credito.ID_Credito
+			left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org ON chkres_org.Id_Credito = chkres.ID_Credito_Origen
 			left join usr_usuarios usuarioCC ON usuarioCC.ID_Usuario = chkres.Id_Usuario_Asignado
 		 where credito.Id_Credito >= (select [ValorEntero]
 									from  [dbo].[Tr_Parametros_Generales]
@@ -288,11 +295,12 @@ Begin
 		,chkres.Id_Usuario_Asignado  AS checkIdUsuario
 		,chkres.Fecha_Inicio         AS checkfechaInicio
 		,chkres.Fecha_Fin            AS checkfechafin
-		,chkres.Resultado            AS checkResultado
+		,COALESCE(chkres.Resultado, chkres_org.Resultado) AS checkResultado
 		,chkres.Fecha_Asignacion     AS checkFechaAsigna
 		,chkres.Notas                AS checkNotas
 		,ISNULL(usuarioCC.Nombre,'') AS checkUsuario
 		,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado
+		,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado
 		FROM CR_Credito as Credito
 			left join [dbo].[TR_Cr_Etapas] as Etapas on Credito.Cod_Etapa = Etapas.Cod_Etapa
 			inner join Pers_Persona Persona on Persona.Id_Persona = Credito.ID_Persona
@@ -308,6 +316,7 @@ Begin
 			Credito.Cod_Etapa = asignable.Cod_Etapa and
 			Credito.Cod_Estatus = asignable.Cod_Estatus
 			left join [dbo].[CR_Credito_CheckList_Resumen] chkres ON chkres.id_credito = Credito.ID_Credito
+			left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org ON chkres_org.Id_Credito = chkres.ID_Credito_Origen
 			left join usr_usuarios usuarioCC ON usuarioCC.ID_Usuario = chkres.Id_Usuario_Asignado
 		 where credito.Id_Credito >= (select [ValorEntero]
 									from  [dbo].[Tr_Parametros_Generales]
@@ -369,11 +378,12 @@ Begin
 		,chkres.Id_Usuario_Asignado  AS checkIdUsuario
 		,chkres.Fecha_Inicio         AS checkfechaInicio
 		,chkres.Fecha_Fin            AS checkfechafin
-		,chkres.Resultado            AS checkResultado
+		,COALESCE(chkres.Resultado, chkres_org.Resultado) AS checkResultado
 		,chkres.Fecha_Asignacion     AS checkFechaAsigna
 		,chkres.Notas                AS checkNotas
 		,ISNULL(usuarioCC.Nombre,'') AS checkUsuario
 		,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado
+		,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado
 		FROM CR_Credito as Credito
 			left join [dbo].[TR_Cr_Etapas] as Etapas on Credito.Cod_Etapa = Etapas.Cod_Etapa
 			inner join Pers_Persona Persona on Persona.Id_Persona = Credito.ID_Persona
@@ -389,6 +399,7 @@ Begin
 			Credito.Cod_Etapa = asignable.Cod_Etapa and
 			Credito.Cod_Estatus = asignable.Cod_Estatus
 			left join [dbo].[CR_Credito_CheckList_Resumen] chkres ON chkres.id_credito = Credito.ID_Credito
+			left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org ON chkres_org.Id_Credito = chkres.ID_Credito_Origen
 			left join usr_usuarios usuarioCC ON usuarioCC.ID_Usuario = chkres.Id_Usuario_Asignado
 		 where credito.Id_Credito >= (select [ValorEntero]
 									from  [dbo].[Tr_Parametros_Generales]
@@ -448,11 +459,12 @@ Begin
 		,chkres.Id_Usuario_Asignado  AS checkIdUsuario
 		,chkres.Fecha_Inicio         AS checkfechaInicio
 		,chkres.Fecha_Fin            AS checkfechafin
-		,chkres.Resultado            AS checkResultado
+		,COALESCE(chkres.Resultado, chkres_org.Resultado) AS checkResultado
 		,chkres.Fecha_Asignacion     AS checkFechaAsigna
 		,chkres.Notas                AS checkNotas
 		,ISNULL(usuarioCC.Nombre,'') AS checkUsuario
 		,CAST(CASE WHEN chkres.Id_Credito IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS CheckListCerrado
+		,CAST(CASE WHEN chkres.ID_Credito_Origen IS NOT NULL AND chkres.Resultado IS NULL THEN 1 ELSE 0 END AS BIT) AS CheckFueReplicado
 		FROM CR_Credito as Credito
 			left join [dbo].[TR_Cr_Etapas] as Etapas on Credito.Cod_Etapa = Etapas.Cod_Etapa
 			inner join Pers_Persona Persona on Persona.Id_Persona = Credito.ID_Persona
@@ -467,6 +479,7 @@ Begin
 			Credito.Cod_Etapa = asignable.Cod_Etapa and
 			Credito.Cod_Estatus = asignable.Cod_Estatus
 			left join [dbo].[CR_Credito_CheckList_Resumen] chkres ON chkres.id_credito = Credito.ID_Credito
+			left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org ON chkres_org.Id_Credito = chkres.ID_Credito_Origen
 			left join usr_usuarios usuarioCC ON usuarioCC.ID_Usuario = chkres.Id_Usuario_Asignado
 		where (usrs.id_usuario = @Id_Usuario or usrs.ID_Usuario_Padre = @Id_Usuario)
 		order by Id_Credito
