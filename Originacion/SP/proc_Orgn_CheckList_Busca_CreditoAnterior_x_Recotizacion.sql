@@ -10,6 +10,10 @@
 --              La búsqueda usa Id_Cotizacion_Nueva para garantizar que se
 --              enlaza con el crédito EXACTO de esta cadena de recotización,
 --              no con cualquier crédito anterior de la persona.
+--              Nota: el SP proc_Orgn_CheckList_Replica_Recotizacion copia
+--              Resultado y Fecha_Fin del original, por lo que cada crédito
+--              replicado tiene Resultado='S' y este SP funciona para
+--              cadenas de n recotizaciones sin necesidad de CTE recursivo.
 -- Tablas afectadas: Ctz_Recotizacion (lectura), CR_Credito_CheckList_Resumen (lectura)
 -- ============================================================
 
