@@ -1,7 +1,7 @@
--- ============================================================
--- SCRIPT: 02_SP_NEW_proc_Orgn_CheckList_Replica_Recotizacion
--- Versión: v1_CallCenter_Recotizacion
--- Fecha: 2026-05-11
+﻿-- ============================================================
+-- SCRIPT: proc_Orgn_CheckList_Replica_Recotizacion
+-- Versión: v4_CallCenter_Recotizacion
+-- Fecha: 2026-05-15
 -- Autor: JorgeVelazquez
 -- Descripción: SP NUEVO. Cuando se recotiza y se genera una nueva solicitud,
 --              replica los registros de validación de Call Center de la
@@ -10,17 +10,15 @@
 --              1. Actualiza CR_Credito_Checklist del nuevo crédito con los
 --                 resultados de verificación del crédito anterior.
 --              2. Inserta/actualiza CR_Credito_CheckList_Resumen del nuevo
---                 crédito con el resumen del crédito anterior.
+--                 crédito copiando Fecha_Fin y Resultado del anterior.
+--                 Guarda ID_Credito_Origen = @ID_Credito_Anterior para
+--                 identificar que el cierre fue replicado (no propio).
 -- Tablas afectadas:
---   CR_Credito_Checklist      (UPDATE)
+--   CR_Credito_Checklist         (UPDATE)
 --   CR_Credito_CheckList_Resumen (INSERT / UPDATE)
 -- ============================================================
 
-IF OBJECT_ID('proc_Orgn_CheckList_Replica_Recotizacion', 'P') IS NOT NULL
-    DROP PROCEDURE proc_Orgn_CheckList_Replica_Recotizacion;
-GO
-
-CREATE PROCEDURE proc_Orgn_CheckList_Replica_Recotizacion
+CREATE OR  ALTER PROCEDURE proc_Orgn_CheckList_Replica_Recotizacion
     @ID_Credito_Nuevo    INT,
     @ID_Credito_Anterior INT,
     @_id  SMALLINT       OUTPUT,
@@ -32,7 +30,6 @@ BEGIN
     SET @_id  = 0;
     SET @_msg = '';
 
-    -- Validación: el crédito anterior debe tener checklist cerrado positivo
     IF NOT EXISTS (
         SELECT 1
         FROM CR_Credito_CheckList_Resumen
@@ -47,14 +44,7 @@ BEGIN
 
     BEGIN TRY
         BEGIN TRANSACTION;
-
-        -- --------------------------------------------------------
-        -- 1. Actualizar los ítems del checklist del nuevo crédito
-        --    con los resultados verificados en el crédito anterior.
-        --    Solo se actualiza cuando el ID_Checklist coincide
-        --    (mismo concepto a verificar), para respetar si el
-        --    producto cambió y tiene ítems distintos.
-        -- --------------------------------------------------------
+        
         UPDATE cc_nuevo
         SET
             cc_nuevo.Cod_Resultado_Verificacion  = cc_ant.Cod_Resultado_Verificacion,
@@ -74,6 +64,9 @@ BEGIN
         -- 2. Replicar el resumen de Call Center
         --    Si ya existe registro para el nuevo crédito → UPDATE
         --    Si no existe → INSERT
+        --    En ambos casos se guarda ID_Credito_Origen para que
+        --    el SP de lista muestre el resultado anterior mientras
+        --    CC no confirme el nuevo crédito (Resultado IS NULL).
         -- --------------------------------------------------------
         IF EXISTS (
             SELECT 1
@@ -88,7 +81,8 @@ BEGIN
                 dest.Fecha_Fin           = src.Fecha_Fin,
                 dest.Resultado           = src.Resultado,
                 dest.Fecha_Asignacion    = src.Fecha_Asignacion,
-                dest.Notas               = src.Notas
+                dest.Notas               = src.Notas,
+                dest.ID_Credito_Origen   = @ID_Credito_Anterior
             FROM CR_Credito_CheckList_Resumen dest
             INNER JOIN CR_Credito_CheckList_Resumen src
                 ON src.Id_Credito = @ID_Credito_Anterior
@@ -99,7 +93,7 @@ BEGIN
         BEGIN
             INSERT INTO CR_Credito_CheckList_Resumen
                 (Id_Credito, Id_Usuario_Asignado, Fecha_Inicio, Fecha_Fin,
-                 Resultado, Fecha_Asignacion, Notas)
+                 Resultado, Fecha_Asignacion, Notas, ID_Credito_Origen)
             SELECT
                 @ID_Credito_Nuevo,
                 Id_Usuario_Asignado,
@@ -107,7 +101,8 @@ BEGIN
                 Fecha_Fin,
                 Resultado,
                 Fecha_Asignacion,
-                Notas
+                Notas,
+                @ID_Credito_Anterior
             FROM CR_Credito_CheckList_Resumen
             WHERE Id_Credito = @ID_Credito_Anterior
               AND Resultado  = 'S';
@@ -130,14 +125,3 @@ BEGIN
 END
 GO
 
--- ============================================================
--- VERIFICACIÓN POST-DEPLOY
--- ============================================================
--- Confirmar que el SP existe y compila (usar IDs reales para prueba real):
--- DECLARE @id SMALLINT, @msg VARCHAR(2048)
--- EXEC proc_Orgn_CheckList_Replica_Recotizacion
---      @ID_Credito_Nuevo    = 0,
---      @ID_Credito_Anterior = 0,
---      @_id  = @id  OUTPUT,
---      @_msg = @msg OUTPUT
--- SELECT @id AS Resultado, @msg AS Mensaje
