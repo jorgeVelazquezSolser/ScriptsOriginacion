@@ -61,7 +61,7 @@ DELETE FROM Originacion.dbo.TR_Front_Objeto_Etapas WHERE IdObjeto=3720
 
 -- Agrega el control de la acción para el front
 INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (120, 3720,3720,'001','02', '10','51','Regresa Analisis Documental-En Revisión')
-INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (121, 3720,3720,'001','04', '08','51','Regresa Analisis-En Análisis')
+INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (121, 3720,3720,'001','04', '08','51','Regresa Analisis Documental-En Revisión')
 INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (122, 3720,3720,'001','02', '10','52','Regresa Analisis-En Análisis')
 INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (123, 3720,3720,'001','06', '34','51','Regresa Analisis Documental-En Revisión')
 INSERT INTO Originacion.dbo.TR_Front_Objeto_Etapas VALUES (124, 3720,3720,'001','06', '34','52','Regresa Analisis-En Análisis')
