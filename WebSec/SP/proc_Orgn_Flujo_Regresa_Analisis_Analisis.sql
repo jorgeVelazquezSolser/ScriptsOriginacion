@@ -25,12 +25,10 @@ BEGIN
 
 	DECLARE @Mensaje_Errortotal VARCHAR(200)  
 
-	IF ( 
-		@Etapa_Actual NOT IN ('02','06') AND @Estatus_Actual NOT IN ('10','34')
-		--(@Etapa_Actual != '02' AND 
-		--	@Estatus_Actual != '10') 
-		--OR (@Etapa_Actual != '06' AND 
-		--	@Estatus_Actual != '34')
+	IF ( (@Etapa_Actual != '02' AND 
+			@Estatus_Actual != '10') 
+		OR (@Etapa_Actual != '06' AND 
+			@Estatus_Actual != '34')
 		)
 	BEGIN
 		SET @Mensaje_Errortotal = '[{"errormensaje":"La etapa actual no se encuentra en las etapas permitidas para regresar a Analisis-En Analisis "}]'
