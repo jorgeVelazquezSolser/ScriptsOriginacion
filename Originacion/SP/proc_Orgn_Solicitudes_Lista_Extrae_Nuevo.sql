@@ -1,20 +1,5 @@
---///////////////////////////////////////////////////////////////
--- Versión: v2_CallCenter_Recotizacion  |  Fecha: 2026-05-14  |  Autor: JorgeVelazquez
--- Agrega COALESCE(chkres.Resultado, chkres_org.Resultado) en checkResultado
--- y columna CheckFueReplicado (BIT) en @SQL_Campos_Select.
--- Agrega LEFT JOIN chkres_org a CR_Credito_CheckList_Resumen via ID_Credito_Origen
--- en @SQL_From para mostrar resultado del CC anterior mientras Resultado IS NULL.
---///////////////////////////////////////////////////////////////
-
-USE [Originacion]
-GO
-/****** Object:  StoredProcedure [dbo].[proc_Orgn_Solicitudes_Lista_Extrae_Nuevo]    Script Date: 12/05/2026 08:19:20 a. m. ******/
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-
-ALTER   PROCEDURE [dbo].[proc_Orgn_Solicitudes_Lista_Extrae_Nuevo] (
+﻿
+ALTER PROCEDURE [dbo].[proc_Orgn_Solicitudes_Lista_Extrae_Nuevo] (
 @filtrosJson Nvarchar(max) = ''
 )
 AS
@@ -29,7 +14,7 @@ Set @filtrosXML = dbo.fncJson2xml(@filtrosJson)
 SELECT @Id_Usuario = Id_Usuario.value('.','varchar(100)') FROM @filtrosXML.nodes('/Id_Usuario') as filtros(Id_Usuario)
 
 select @IdPerfil = isnull(IdPerfil,0)
-from websec.[dbo].SegUsuariosPerfiles
+from WebSec.[dbo].SegUsuariosPerfiles
 where IdUsuario = @Id_Usuario
 and Estatus = 'A'
 
@@ -159,29 +144,30 @@ left join [CR_Credito_Usuarios] credusrAnalista
 on Credito.ID_Credito = credusrAnalista.Id_Credito and
 credusrAnalista.Cod_ECV_Credito_Usuario = ''01''
 and credusrAnalista.IdPerfil in (2,10,11, 19,20,21)
+and  credusrAnalista.ID_Usuario != Credito.ID_Usuario
 left join usr_usuarios usrAnalista on
-credusrAnalista.ID_Usuario = usrAnalista.ID_Usuario
-inner join websec.[dbo].[SegUsuariosVistasEtapasEstatus] usrVistaEtapas
+credusrAnalista.ID_Usuario = usrAnalista.ID_Usuario 
+inner join WebSec.[dbo].[SegUsuariosVistasEtapasEstatus] usrVistaEtapas
 on
-usrVistaEtapas.Cod_Etapa = Credito.Cod_Etapa and
-usrVistaEtapas.Cod_Estatus = Credito.Cod_Estatus
+usrVistaEtapas.Cod_Etapa = Credito.Cod_Etapa COLLATE SQL_Latin1_General_CP1_CI_AS and
+usrVistaEtapas.Cod_Estatus = Credito.Cod_Estatus COLLATE SQL_Latin1_General_CP1_CI_AS
 and usrVistaEtapas.IdPerfil = ' + cast(isnull(@IdPerfil,0) as nvarchar(20)) + N'
-left join websec.dbo.[SegEtapasEsatusAsignables] asignable on
-Credito.Cod_Etapa = asignable.Cod_Etapa and
-Credito.Cod_Estatus = asignable.Cod_Estatus
-left join websec.[dbo].SegUsuariosPerfiles usuarioperfile on
+left join WebSec.dbo.[SegEtapasEsatusAsignables] asignable on
+Credito.Cod_Etapa COLLATE SQL_Latin1_General_CP1_CI_AS = asignable.Cod_Etapa and
+Credito.Cod_Estatus COLLATE SQL_Latin1_General_CP1_CI_AS = asignable.Cod_Estatus
+left join WebSec.[dbo].SegUsuariosPerfiles usuarioperfile on
 usrs.ID_Usuario = usuarioperfile.IdUsuario and
 usuarioperfile.Estatus = ''A''
-left join websec.[dbo].[SegPerfilesObjetosEtapas] permisoasignar on
-Credito.Cod_Etapa = permisoasignar.Cod_Etapa and
-Credito.Cod_Estatus = permisoasignar.Cod_Estatus and
+left join WebSec.[dbo].[SegPerfilesObjetosEtapas] permisoasignar on
+Credito.Cod_Etapa COLLATE SQL_Latin1_General_CP1_CI_AS = permisoasignar.Cod_Etapa and
+Credito.Cod_Estatus COLLATE SQL_Latin1_General_CP1_CI_AS = permisoasignar.Cod_Estatus and
 permisoasignar.IdPerfil = usuarioperfile.IdPerfil and
 permisoasignar.idobjeto = 3025
 left join [dbo].[CR_Credito_CheckList_Resumen] chkres on
 chkres.id_credito = Credito.ID_Credito
 left join [dbo].[CR_Credito_CheckList_Resumen] chkres_org on
 chkres_org.Id_Credito = chkres.ID_Credito_Origen
-left join websec.[dbo].SegUsuarios usuarioCC on
+left join WebSec.[dbo].SegUsuarios usuarioCC on
 usuarioCC.IdUsuario = chkres.[Id_Usuario_Asignado]
 Left join TR_Unidad_Medida UM on Credito.Cod_Frecuencia_Pago = UM.COD_UDM
 LEFT JOIN
@@ -223,21 +209,11 @@ begin
 
  if @IdPerfil = 19
  begin
-  print 'entro perfil 19 documental: asignadas + no asignadas'
+  -- FIX v3: perfil 19 solo ve solicitudes asignadas explícitamente a él.
+  -- Se eliminaron OR jerarquía + OR not exists que mostraban todos los créditos sin analista.
+  print 'entro perfil 19 documental: solo asignadas'
 
-  set @SQL_Where = N'(
-   usrs.id_usuario in (
-    select id_usuario
-    from fn_Orgn_Usuarios_Jerarquia(' + cast(@Id_Usuario as varchar(20)) + N')
-   )
-   or (credusrAnalista.id_usuario = ' + cast(@Id_Usuario as varchar(20)) + N')
-   or not exists (
-    select 1
-    from CR_Credito_Usuarios cuAsignado
-    where cuAsignado.Id_Credito = Credito.Id_Credito
-      and cuAsignado.Cod_ECV_Credito_Usuario = ''01''
-   )
-  )'
+  set @SQL_Where = N'credusrAnalista.id_usuario = ' + cast(@Id_Usuario as varchar(20))
  end
  else
  begin
